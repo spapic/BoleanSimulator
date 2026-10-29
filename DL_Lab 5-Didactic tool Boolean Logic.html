@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boolean ITP Studio v2 - Anti-Loop & 3 Truth Tables</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-border: #334155;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-hover: #0284c7;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --node-bg: #334155;
+    --node-selected: #0284c7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.45;
+    padding: 14px;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--panel);
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--panel-border);
+    margin-bottom: 14px;
+  }
+  header h1 { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+  header .subtitle { font-size: 0.82rem; color: var(--muted); }
+  .badge {
+    background: rgba(56, 189, 248, 0.15);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    transition: all 0.25s;
+  }
+  .badge.done {
+    background: rgba(34, 197, 94, 0.25);
+    color: #4ade80;
+    border-color: var(--success);
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+  }
+  .top-layout {
+    display: grid;
+    grid-template-columns: 310px 1fr 310px;
+    gap: 14px;
+    align-items: start;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .panel h2 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 6px;
+  }
+  select, input[type="text"] {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    border-radius: 6px;
+    font-size: 0.88rem;
+    margin-bottom: 8px;
+  }
+  button {
+    cursor: pointer;
+    background: var(--node-bg);
+    color: var(--text);
+    border: 1px solid var(--panel-border);
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    transition: all 0.15s;
+  }
+  button:hover { background: var(--accent-hover); border-color: var(--accent); }
+  button.primary { background: var(--accent-hover); border-color: var(--accent); font-weight: 600; }
+  button.hint-btn {
+    background: rgba(245, 158, 11, 0.18);
+    border-color: var(--warning);
+    color: #fde68a;
+    font-weight: 600;
+  }
+  button.hint-btn:hover { background: rgba(245, 158, 11, 0.35); }
+  .tactic-group { margin-bottom: 10px; }
+  .tactic-group-title { font-size: 0.75rem; color: var(--accent); font-weight: 600; margin-bottom: 5px; }
+  .tactic-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 4px;
+    padding: 6px 9px;
+    font-size: 0.8rem;
+  }
+  .tactic-btn.suggested {
+    border-color: var(--warning);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+    background: rgba(245, 158, 11, 0.22);
+  }
+  .tactic-btn code {
+    color: #cbd5e1;
+    background: rgba(0,0,0,0.3);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.74rem;
+  }
+  .goal-box {
+    background: var(--bg);
+    border: 2px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 20px 14px;
+    text-align: center;
+    margin-bottom: 12px;
+    min-height: 92px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.25s;
+  }
+  .goal-box.qed-box {
+    border-color: var(--success);
+    background: rgba(34, 197, 94, 0.07);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+  }
+  .qed-banner {
+    display: none;
+    background: rgba(34, 197, 94, 0.2);
+    border: 1px solid var(--success);
+    color: #86efac;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    text-align: center;
+  }
+  .qed-banner.visible { display: block; }
+  .ast-node {
+    display: inline-block;
+    padding: 3px 6px;
+    margin: 2px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 1.3rem;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .ast-node:hover {
+    border-color: var(--accent);
+    background: rgba(56, 189, 248, 0.15);
+  }
+  .ast-node.selected {
+    background: var(--node-selected);
+    border-color: #bae6fd;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.45);
+  }
+  .ast-node.hint-highlight {
+    background: rgba(245, 158, 11, 0.28);
+    border-color: var(--warning);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+  }
+  .status-msg {
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    border-left: 4px solid var(--accent);
+    background: rgba(56, 189, 248, 0.1);
+  }
+  .status-msg.error {
+    border-left-color: var(--danger);
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+  }
+  .status-msg.success {
+    border-left-color: var(--success);
+    background: rgba(34, 197, 94, 0.14);
+    color: #86efac;
+  }
+  .status-msg.hint {
+    border-left-color: var(--warning);
+    background: rgba(245, 158, 11, 0.15);
+    color: #fde68a;
+  }
+  .proof-step {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--panel-border);
+    font-family: monospace;
+    font-size: 0.88rem;
+  }
+  .proof-step.loop-warn {
+    background: rgba(245, 158, 11, 0.12);
+  }
+  .proof-step:last-child { border-bottom: none; }
+  .proof-step .law-tag {
+    font-family: sans-serif;
+    font-size: 0.72rem;
+    background: #334155;
+    color: #e2e8f0;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .metric-card {
+    background: var(--bg);
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--panel-border);
+    text-align: center;
+  }
+  .metric-card .val { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+  .metric-card .lbl { font-size: 0.72rem; color: var(--muted); }
+  .canonical-box {
+    background: var(--bg);
+    padding: 10px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    border: 1px solid var(--panel-border);
+  }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+
+  /* THREE TRUTH TABLES SECTION */
+  .tables-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .tt-card {
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px;
+  }
+  .tt-card h3 {
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .tt-expr-label {
+    font-family: monospace;
+    font-size: 0.82rem;
+    color: #e2e8f0;
+    background: rgba(255,255,255,0.04);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    word-break: break-all;
+  }
+  table.truth-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    font-family: monospace;
+    text-align: center;
+  }
+  table.truth-table th, table.truth-table td {
+    border: 1px solid var(--panel-border);
+    padding: 4px 6px;
+  }
+  table.truth-table th { background: #1e293b; color: var(--accent); }
+  .out-1 { color: #4ade80; font-weight: 700; background: rgba(34, 197, 94, 0.08); }
+  .out-0 { color: #94a3b8; }
+  .out-diff { color: #f87171; font-weight: 700; background: rgba(239, 68, 68, 0.2); }
+
+  /* Help Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    max-width: 680px;
+    width: 100%;
+    padding: 24px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .modal h3 { color: var(--accent); margin-bottom: 12px; font-size: 1.2rem; }
+  .modal p, .modal li { font-size: 0.9rem; color: #e2e8f0; margin-bottom: 8px; }
+  .modal ul { padding-left: 20px; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Boolean ITP &amp; Gate Studio v2.0</h1>
+    <div class="subtitle">Interactive Theorem Prover with Anti-Loop Detection &amp; Triple Truth-Table Verification</div>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <button onclick="toggleHelp(true)">❓ How to Use / Help</button>
+    <div class="badge" id="qed-badge">IN PROGRESS</div>
+  </div>
+</header>
+
+<div class="top-layout">
+  <!-- LEFT COLUMN: TACTICS -->
+  <div>
+    <div class="panel">
+      <h2>1. Select Lab 6 Task</h2>
+      <select id="task-select" onchange="loadSelectedTask()">
+        <option value="warmup1">Warmup: Distributive A*(B+C)</option>
+        <option value="warmup2">Warmup: De Morgan (A*B)'</option>
+        <option value="task1">Task 1: A'B + AB' + BC (Canonical)</option>
+        <option value="task2" selected>Task 2: ((A*C)' + A) * (B'*C)'</option>
+        <option value="task3">Task 3: (A + B) * (A + B'*C)</option>
+        <option value="task4">Task 4: A + (A' * B)</option>
+        <option value="task5">Task 5: A * ((A + A') + B')</option>
+        <option value="task6">Task 6: A*B + B*C*(B + C)</option>
+        <option value="task7">Task 7: A*B + A*(B+C) + B*(B+C)</option>
+        <option value="task8">Task 8: (A'*B) + (B*C') + (B*C)</option>
+      </select>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="custom-expr" placeholder="Custom: e.g. (A+B)*(A+B')" style="margin-bottom:0;">
+        <button class="primary" onclick="loadCustomExpr()">Load</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>2. Proof Tactics (Page 6 Laws)</h2>
+      <div class="tactic-group">
+        <div class="tactic-group-title">Annulment / Identity / Idempotent</div>
+        <button class="tactic-btn" id="btn-annulment" onclick="applyTactic('annulment')"><span>Domination (Null)</span><code>X+1=1, X·0=0</code></button>
+        <button class="tactic-btn" id="btn-identity" onclick="applyTactic('identity')"><span>Identity</span><code>X+0=X, X·1=X</code></button>
+        <button class="tactic-btn" id="btn-idempotent" onclick="applyTactic('idempotent')"><span>Idempotent</span><code>X+X=X, X·X=X</code></button>
+      </div>
+
+      <div class="tactic-group">
+        <div class="tactic-group-title">Complement &amp; Involution</div>
+        <button class="tactic-btn" id="btn-complement" onclick="applyTactic('complement')"><span>Complement</span><code>X+X'=1, X·X'=0</code></button>
+        <button class="tactic-btn" id="btn-double_neg" onclick="applyTactic('double_neg')"><span>Double Negation</span><code>(X')' = X</code></button>
+        <button class="tactic-btn" id="btn-demorgan" onclick="applyTactic('demorgan')"><span>De Morgan's Law</span><code>(X·Y)' ↔ X'+Y'</code></button>
+      </div>
+
+      <div class="tactic-group">
+        <div class="tactic-group-title">Absorption Laws</div>
+        <button class="tactic-btn" id="btn-absorption" onclick="applyTactic('absorption')"><span>Absorption</span><code>X+X·Y=X, X·(X+Y)=X</code></button>
+        <button class="tactic-btn" id="btn-absorption_comp" onclick="applyTactic('absorption_comp')"><span>Absorp. w/ Comp.</span><code>X+X'·Y = X+Y</code></button>
+      </div>
+
+      <div class="tactic-group">
+        <div class="tactic-group-title">Distributive, Commutative &amp; Associative</div>
+        <button class="tactic-btn" id="btn-distribute" onclick="applyTactic('distribute')"><span>Distributive (Expand)</span><code>X·(Y+Z) → X·Y+X·Z</code></button>
+        <button class="tactic-btn" id="btn-factor" onclick="applyTactic('factor')"><span>Distributive (Factor)</span><code>X·Y+X·Z → X·(Y+Z)</code></button>
+        <button class="tactic-btn" id="btn-commute" onclick="applyTactic('commute')"><span>Commutative (Swap)</span><code>X op Y → Y op X</code></button>
+        <button class="tactic-btn" id="btn-associate_left" onclick="applyTactic('associate_left')"><span>Associative (Shift ⬅)</span><code>X+(Y+Z) → (X+Y)+Z</code></button>
+        <button class="tactic-btn" id="btn-associate_right" onclick="applyTactic('associate_right')"><span>Associative (Shift ➡)</span><code>(X+Y)+Z → X+(Y+Z)</code></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER COLUMN -->
+  <div>
+    <div class="panel">
+      <h2>Active Expression Builder (Click Sub-Expression to Target)</h2>
+      <div class="toolbar">
+        <button onclick="selectRoot()">Select Entire Expression</button>
+        <button class="hint-btn" onclick="giveSmartHint()">💡 Get Smart Hint</button>
+        <button onclick="showTaskWalkthrough()">📋 Solution Steps</button>
+        <button onclick="undoStep()">↩ Undo</button>
+        <button onclick="resetTask()">⟲ Reset</button>
+      </div>
+
+      <div class="qed-banner" id="qed-banner">
+        🎉 Q.E.D. — KRAJ DOKAZA! Izraz je u minimalnom obliku. Nema potrebe za daljnjim koracima!
+      </div>
+
+      <div class="goal-box" id="ast-container"></div>
+
+      <div class="status-msg" id="status-bar">
+        Click any sub-expression above to select it, or click "💡 Get Smart Hint".
+      </div>
+
+      <div style="border-top: 1px solid var(--panel-border); padding-top:10px; margin-top:10px;">
+        <div style="font-size:0.8rem; color:var(--muted); margin-bottom:6px;">
+          <strong>Manual Step Verifier (Free-hand Mode):</strong> Type your own derived step to update the middle Truth Table:
+        </div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="manual-step-input" placeholder="e.g. (A' + C' + A) * (B' * C)'" style="margin-bottom:0;">
+          <button class="primary" onclick="verifyManualStep()">Verify Step</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Formal Proof Derivation History (Anti-Loop Monitored)</h2>
+      <div id="proof-history" style="max-height: 210px; overflow-y: auto;"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: METRICS & CANONICAL -->
+  <div>
+    <div class="panel">
+      <h2>Hardware Gate Cost</h2>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="val" id="gate-count-init">0</div>
+          <div class="lbl">Initial Gates</div>
+        </div>
+        <div class="metric-card">
+          <div class="val" id="gate-count-curr">0</div>
+          <div class="lbl">Current Step Gates</div>
+        </div>
+        <div class="metric-card">
+          <div class="val" id="gate-count-target" style="color:var(--success)">0</div>
+          <div class="lbl">Minimal Target Gates</div>
+        </div>
+        <div class="metric-card">
+          <div class="val" id="depth-curr">0</div>
+          <div class="lbl">Current Prop. Delay</div>
+        </div>
+      </div>
+      <div class="canonical-box" id="canonical-output"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM FULL-WIDTH PANEL: 3 TRUTH TABLES -->
+<div class="panel">
+  <h2>3-Stage Truth Table Verification (Initial vs. Current Step vs. Final Minimal Result)</h2>
+  <div class="tables-grid">
+    <div class="tt-card">
+      <h3><span>1. Initial Expression</span><span style="color:var(--muted); font-size:0.75rem;">Start</span></h3>
+      <div class="tt-expr-label" id="lbl-expr-init"></div>
+      <table class="truth-table" id="tt-init"></table>
+    </div>
+    <div class="tt-card">
+      <h3><span>2. Current Step (Live)</span><span id="tt-curr-status" style="font-size:0.75rem;"></span></h3>
+      <div class="tt-expr-label" id="lbl-expr-curr"></div>
+      <table class="truth-table" id="tt-curr"></table>
+    </div>
+    <div class="tt-card">
+      <h3><span>3. Final Simplified Result</span><span style="color:var(--success); font-size:0.75rem;">Target Goal</span></h3>
+      <div class="tt-expr-label" id="lbl-expr-final"></div>
+      <table class="truth-table" id="tt-final"></table>
+    </div>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div class="modal-overlay" id="help-modal" onclick="toggleHelp(false)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3>📖 Kako radi zaštita od petlji i detekcija kraja (v2.0)</h3>
+    <ul>
+      <li><strong>Automatski Q.E.D. (Detekcija kraja bez obzira na poredak):</strong> Sustav uspoređuje tablicu istinitosti i minimalni broj vrata/literala. Ako je cilj <code>B + (A · C)</code>, a ti dobiješ <code>(A · C) + B</code> ili <code>B + (C · A)</code>, simulator odmah proglašava <strong>KRAJ DOKAZA (Q.E.D.)</strong> jer je sklop minimalan i semantički identičan!</li>
+      <li><strong>Anti-Loop Guard (Zaštita od vrtnje u krug):</strong> Sustav pamti sve izraze kroz koje si prošao. Ako primijeniš zakon koji te vraća na već viđeni korak, dobit ćeš žuto upozorenje. Gumb <strong>💡 Get Smart Hint</strong> nikada neće predložiti korak koji vraća u prijašnje stanje.</li>
+      <li><strong>Pametna Apsorpcija i Faktorizacija:</strong> Zakoni apsorpcije i faktorizacije sada rade u oba smjera bez obzira na to je li zajednička varijabla lijevo ili desno u zagradi (npr. <code>(A · B) + B</code> odmah se reducira u <code>B</code>).</li>
+      <li><strong>Tri tablice istinitosti:</strong> Dolje su prikazane tri tablice: početni izraz, trenutni korak i konačni minimalni izraz.</li>
+    </ul>
+    <div style="text-align:right; margin-top:12px;">
+      <button class="primary" onclick="toggleHelp(false)">Zatvori</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// 1. LAB 6 TASKS
+// ============================================================================
+const LAB_TASKS = {
+  warmup1: {
+    expr: "A * (B + C)", target: "(A * B) + (A * C)", mode: "exact",
+    desc: "Warmup: Expand A·(B+C) using Distributive law",
+    walkthrough: "1. Select entire expression A · (B + C) → Click 'Distributive (Expand)'."
+  },
+  warmup2: {
+    expr: "(A * B)'", target: "A' + B'", mode: "exact",
+    desc: "Warmup: Apply De Morgan's theorem to (A·B)'",
+    walkthrough: "1. Select (A · B)' → Click 'De Morgan's Law'."
+  },
+  task1: {
+    expr: "(A' * B) + (A * B') + (B * C)", target: "(A' * B) + (A * C')", mode: "canonical",
+    desc: "Task 1: Inspect the 3 Truth Tables, Canonical SOP (Σm) and POS (ΠM).",
+    walkthrough: "Canonical SOP = Σm(2, 3, 4, 5, 7) and Canonical POS = ΠM(0, 1, 6)."
+  },
+  task2: {
+    expr: "((A * C)' + A) * (B' * C)'", target: "B + C'", mode: "minimal",
+    desc: "Task 2: Simplify ((A·C)' + A) · (B'·C)' down to B + C'",
+    walkthrough: "1. Click (A · C)' → De Morgan's Law → ((A' + C') + A) · (B' · C)'\n2. Click (A' + C') → Commutative (Swap) → ((C' + A') + A) · (B' · C)'\n3. Click (C' + A') + A → Associative (Shift ➡) → (C' + (A' + A)) · (B' · C)'\n4. Click (A' + A) → Complement → (C' + 1) · (B' · C)'\n5. Click (C' + 1) → Domination (Null) → 1 · (B' · C)'\n6. Click entire expression → Identity → (B' · C)'\n7. Click (B' · C)' → De Morgan's Law → B + C' (Q.E.D.)"
+  },
+  task3: {
+    expr: "(A + B) * (A + (B' * C))", target: "A", mode: "minimal",
+    desc: "Task 3: Simplify (A + B) · (A + B'·C) down to A",
+    walkthrough: "1. Select entire expression → Click 'Distributive (Factor)' [(X+Y)·(X+Z) = X + Y·Z] → A + (B · (B' · C))\n2. Select B · (B' · C) → Click 'Associative (Shift ⬅)' → A + ((B · B') · C)\n3. Select B · B' → Click 'Complement' → A + (0 · C)\n4. Select 0 · C → Click 'Domination (Null)' → A + 0\n5. Select A + 0 → Click 'Identity' → A (Q.E.D.)"
+  },
+  task4: {
+    expr: "A + (A' * B)", target: "A + B", mode: "minimal",
+    desc: "Task 4: Simplify A + (A' · B) to A + B",
+    walkthrough: "Fast way: Select entire expression → Click 'Absorp. w/ Comp.' → A + B (Q.E.D.)\nOr via Distributive (Expand) → (A + A') · (A + B) → Complement → Identity."
+  },
+  task5: {
+    expr: "A * ((A + A') + B')", target: "A", mode: "minimal",
+    desc: "Task 5: Simplify A · ((A + A') + B') to A",
+    walkthrough: "1. Click (A + A') → Complement → A · (1 + B')\n2. Click (1 + B') → Domination (Null) → A · 1\n3. Click A · 1 → Identity → A (Q.E.D.)"
+  },
+  task6: {
+    expr: "(A * B) + ((B * C) * (B + C))", target: "B * (A + C)", mode: "minimal",
+    desc: "Task 6: Simplify A·B + B·C·(B + C) to B · (A + C)",
+    walkthrough: "1. Click (B · C) · (B + C) → Associative (Shift ➡) → (A · B) + (B · (C · (B + C)))\n2. Click C · (B + C) → Absorption → gives (A · B) + (B · C)\n3. Select entire expression → Distributive (Factor) → B · (A + C) (Q.E.D.)"
+  },
+  task7: {
+    expr: "(A * B) + (A * (B + C)) + (B * (B + C))", target: "B + (A * C)", mode: "minimal",
+    desc: "Task 7: Simplify A·B + A·(B+C) + B·(B+C) to B + (A · C)",
+    walkthrough: "1. Click B · (B + C) → Absorption → ((A · B) + (A · (B + C))) + B\n2. Click A · (B + C) → Distributive (Expand) → ((A · B) + ((A · B) + (A · C))) + B\n3. Click (A · B) + ((A · B) + (A · C)) → Associative (Shift ⬅) → (((A · B) + (A · B)) + (A · C)) + B\n4. Click (A · B) + (A · B) → Idempotent → ((A · B) + (A · C)) + B\n5. Click ((A · B) + (A · C)) + B → Commutative or Associative to group (A · B) with B → Absorption → (A · C) + B (Q.E.D.)"
+  },
+  task8: {
+    expr: "(A' * B) + (B * C') + (B * C)", target: "B", mode: "minimal",
+    desc: "Task 8: Simplify (A'·B) + (B·C') + (B·C) to B",
+    walkthrough: "1. Select entire expression → Associative (Shift ➡) → (A' · B) + ((B · C') + (B · C))\n2. Click (B · C') + (B · C) → Distributive (Factor) → (A' · B) + (B · (C' + C))\n3. Click (C' + C) → Complement → (A' · B) + (B · 1)\n4. Click (B · 1) → Identity → (A' · B) + B\n5. Select entire expression → Absorption → B (Q.E.D.)"
+  }
+};
+
+let initialAST = null;
+let currentAST = null;
+let targetAST = null;
+let selectedNodeId = "root";
+let suggestedTactic = null;
+let proofSteps = [];
+let visitedNormalized = new Set();
+let currentTaskKey = "task2";
+
+// ============================================================================
+// 2. PARSER & AST UTILITIES
+// ============================================================================
+function tokenize(str) {
+  const s = str.replace(/\s+/g, '').replace(/·/g, '*').replace(/∧/g, '*').replace(/∨/g, '+').replace(/¬/g, '~');
+  const tokens = [];
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (/[A-Za-z01]/.test(ch)) tokens.push({ type: 'SYM', val: ch.toUpperCase() });
+    else if (ch === '+' || ch === '*' || ch === '(' || ch === ')' || ch === "'" || ch === '~') tokens.push({ type: ch });
+    else throw new Error(`Unexpected character: ${ch}`);
+  }
+  const out = [];
+  for (let i = 0; i < tokens.length; i++) {
+    out.push(tokens[i]);
+    if (i + 1 < tokens.length) {
+      const curr = tokens[i].type;
+      const next = tokens[i + 1].type;
+      if ((curr === 'SYM' || curr === ')' || curr === "'") && (next === 'SYM' || next === '(' || next === '~')) {
+        out.push({ type: '*' });
+      }
+    }
+  }
+  return out;
+}
+
+function parseBoolean(str) {
+  const tokens = tokenize(str);
+  let pos = 0;
+  function peek() { return tokens[pos]; }
+  function consume() { return tokens[pos++]; }
+  function parseOr() {
+    let left = parseAnd();
+    while (peek() && peek().type === '+') { consume(); left = { type: 'OR', left, right: parseAnd() }; }
+    return left;
+  }
+  function parseAnd() {
+    let left = parseUnary();
+    while (peek() && peek().type === '*') { consume(); left = { type: 'AND', left, right: parseUnary() }; }
+    return left;
+  }
+  function parseUnary() {
+    if (peek() && peek().type === '~') { consume(); return { type: 'NOT', child: parseUnary() }; }
+    let node = parsePrimary();
+    while (peek() && peek().type === "'") { consume(); node = { type: 'NOT', child: node }; }
+    return node;
+  }
+  function parsePrimary() {
+    const t = peek();
+    if (!t) throw new Error("Unexpected end of expression");
+    if (t.type === '(') {
+      consume();
+      const expr = parseOr();
+      if (!peek() || peek().type !== ')') throw new Error("Missing closing parenthesis ')'");
+      consume();
+      return expr;
+    }
+    if (t.type === 'SYM') {
+      consume();
+      if (t.val === '0' || t.val === '1') return { type: 'CONST', val: parseInt(t.val, 10) };
+      return { type: 'VAR', name: t.val };
+    }
+    throw new Error(`Unexpected token: ${t.type}`);
+  }
+  const ast = parseOr();
+  if (pos < tokens.length) throw new Error("Extra tokens at end of expression");
+  assignIds(ast, "root");
+  return ast;
+}
+
+function assignIds(node, path) {
+  if (!node) return;
+  node.id = path;
+  if (node.type === 'NOT') assignIds(node.child, path + ".c");
+  if (node.type === 'AND' || node.type === 'OR') {
+    assignIds(node.left, path + ".l");
+    assignIds(node.right, path + ".r");
+  }
+}
+
+function cloneAST(node) { return JSON.parse(JSON.stringify(node)); }
+
+function astEquals(a, b) {
+  if (!a || !b || a.type !== b.type) return false;
+  if (a.type === 'VAR') return a.name === b.name;
+  if (a.type === 'CONST') return a.val === b.val;
+  if (a.type === 'NOT') return astEquals(a.child, b.child);
+  return astEquals(a.left, b.left) && astEquals(a.right, b.right);
+}
+
+// Commutative-insensitive equality (so A*C + B == B + C*A)
+function astCommutativeEquals(a, b) {
+  if (!a || !b || a.type !== b.type) return false;
+  if (a.type === 'VAR') return a.name === b.name;
+  if (a.type === 'CONST') return a.val === b.val;
+  if (a.type === 'NOT') return astCommutativeEquals(a.child, b.child);
+  return (astCommutativeEquals(a.left, b.left) && astCommutativeEquals(a.right, b.right)) ||
+         (astCommutativeEquals(a.left, b.right) && astCommutativeEquals(a.right, b.left));
+}
+
+function isComplementPair(a, b) {
+  return (a.type === 'NOT' && astCommutativeEquals(a.child, b)) ||
+         (b.type === 'NOT' && astCommutativeEquals(b.child, a));
+}
+
+function astToString(node, parentType = null) {
+  if (!node) return "";
+  if (node.type === 'VAR') return node.name;
+  if (node.type === 'CONST') return String(node.val);
+  if (node.type === 'NOT') {
+    const inner = astToString(node.child, null);
+    if (node.child.type === 'VAR' || node.child.type === 'CONST') return `${inner}'`;
+    return `(${inner})'`;
+  }
+  const op = node.type === 'AND' ? '·' : '+';
+  const leftStr = astToString(node.left, node.type);
+  const rightStr = astToString(node.right, node.type);
+  const str = `${leftStr} ${op} ${rightStr}`;
+  if (parentType && ((parentType === 'AND' && node.type === 'OR') || (parentType === 'OR' && node.type === 'OR') || (parentType === 'AND' && node.type === 'AND'))) {
+    return `(${str})`;
+  }
+  return str;
+}
+
+// Count total variable/constant leaf occurrences + gates
+function computeComplexity(node) {
+  if (!node) return { gates: 0, depth: 0, literals: 0 };
+  if (node.type === 'VAR' || node.type === 'CONST') return { gates: 0, depth: 0, literals: 1 };
+  if (node.type === 'NOT') {
+    const c = computeComplexity(node.child);
+    return { gates: c.gates + 1, depth: c.depth + 1, literals: c.literals };
+  }
+  const l = computeComplexity(node.left);
+  const r = computeComplexity(node.right);
+  return {
+    gates: l.gates + r.gates + 1,
+    depth: Math.max(l.depth, r.depth) + 1,
+    literals: l.literals + r.literals
+  };
+}
+
+// Automatic Minimal Expression Finder (for custom expressions)
+function synthesizeMinimalTarget(ast) {
+  const vars = getVariables(ast);
+  if (vars.length === 0) {
+    const val = evalAST(ast, {});
+    return parseBoolean(String(val));
+  }
+  const numRows = 1 << vars.length;
+  let ones = 0;
+  for (let i = 0; i < numRows; i++) {
+    const env = {};
+    vars.forEach((v, idx) => { env[v] = (i >> (vars.length - 1 - idx)) & 1; });
+    if (evalAST(ast, env) === 1) ones++;
+  }
+  if (ones === 0) return parseBoolean("0");
+  if (ones === numRows) return parseBoolean("1");
+
+  // Search small candidate expressions up to 3 variables for exact minimal match
+  const candidates = ["A", "B", "C", "A'", "B'", "C'", "A+B", "A+C", "B+C", "A+B'", "A+C'", "B+C'", "A'+B", "A'+C", "B'+C",
+    "A*B", "A*C", "B*C", "A*B'", "A*C'", "B*C'", "A'*B", "A'*C", "B'*C",
+    "A+(B*C)", "B+(A*C)", "C+(A*B)", "A*(B+C)", "B*(A+C)", "C*(A+B)",
+    "A'+(B*C)", "B+(A'*C)", "(A'*B)+(A*B')+(B*C)"];
+  for (const candStr of candidates) {
+    try {
+      const candAST = parseBoolean(candStr);
+      if (areSemanticallyEqual(ast, candAST)) return candAST;
+    } catch (e) {}
+  }
+  return cloneAST(ast);
+}
+
+function areSemanticallyEqual(ast1, ast2) {
+  const vars = Array.from(new Set([...getVariables(ast1), ...getVariables(ast2)])).sort();
+  const numRows = 1 << vars.length;
+  for (let i = 0; i < numRows; i++) {
+    const env = {};
+    vars.forEach((v, idx) => { env[v] = (i >> (vars.length - 1 - idx)) & 1; });
+    if (evalAST(ast1, env) !== evalAST(ast2, env)) return false;
+  }
+  return true;
+}
+
+// ============================================================================
+// 3. ITP KERNEL: TACTICS (Enhanced Commutative-Aware Pattern Matching)
+// ============================================================================
+function applyLawToNode(node, tactic) {
+  const n = cloneAST(node);
+  switch (tactic) {
+    case 'annulment':
+      if (n.type === 'OR' && ((n.left.type === 'CONST' && n.left.val === 1) || (n.right.type === 'CONST' && n.right.val === 1)))
+        return { node: { type: 'CONST', val: 1 }, law: "Domination Law: X + 1 = 1" };
+      if (n.type === 'AND' && ((n.left.type === 'CONST' && n.left.val === 0) || (n.right.type === 'CONST' && n.right.val === 0)))
+        return { node: { type: 'CONST', val: 0 }, law: "Domination Law: X · 0 = 0" };
+      throw new Error("Domination Law requires 'X + 1' or 'X · 0' at the selected node.");
+
+    case 'identity':
+      if (n.type === 'OR') {
+        if (n.left.type === 'CONST' && n.left.val === 0) return { node: n.right, law: "Identity Law: 0 + X = X" };
+        if (n.right.type === 'CONST' && n.right.val === 0) return { node: n.left, law: "Identity Law: X + 0 = X" };
+      }
+      if (n.type === 'AND') {
+        if (n.left.type === 'CONST' && n.left.val === 1) return { node: n.right, law: "Identity Law: 1 · X = X" };
+        if (n.right.type === 'CONST' && n.right.val === 1) return { node: n.left, law: "Identity Law: X · 1 = X" };
+      }
+      throw new Error("Identity Law requires 'X + 0' or 'X · 1' at the selected node.");
+
+    case 'idempotent':
+      if ((n.type === 'OR' || n.type === 'AND') && astCommutativeEquals(n.left, n.right))
+        return { node: n.left, law: `Idempotent Law: X ${n.type === 'OR' ? '+' : '·'} X = X` };
+      throw new Error("Idempotent Law requires two identical terms: 'X + X' or 'X · X'.");
+
+    case 'complement':
+      if (n.type === 'NOT' && n.child.type === 'CONST')
+        return { node: { type: 'CONST', val: n.child.val === 0 ? 1 : 0 }, law: "Complement of Constant" };
+      if (n.type === 'OR' && isComplementPair(n.left, n.right))
+        return { node: { type: 'CONST', val: 1 }, law: "Complement Law: X + X' = 1" };
+      if (n.type === 'AND' && isComplementPair(n.left, n.right))
+        return { node: { type: 'CONST', val: 0 }, law: "Complement Law: X · X' = 0" };
+      throw new Error("Complement Law requires 'X + X'' or 'X · X'' inside the selected bracket.");
+
+    case 'double_neg':
+      if (n.type === 'NOT' && n.child.type === 'NOT')
+        return { node: n.child.child, law: "Double Negation Law: (X')' = X" };
+      throw new Error("Double Negation requires '(X')''.");
+
+    case 'demorgan':
+      if (n.type === 'NOT' && (n.child.type === 'AND' || n.child.type === 'OR')) {
+        const newOp = n.child.type === 'AND' ? 'OR' : 'AND';
+        const leftNot = n.child.left.type === 'NOT' ? n.child.left.child : { type: 'NOT', child: n.child.left };
+        const rightNot = n.child.right.type === 'NOT' ? n.child.right.child : { type: 'NOT', child: n.child.right };
+        return { node: { type: newOp, left: leftNot, right: rightNot }, law: `De Morgan's Theorem (${n.child.type} → ${newOp})` };
+      }
+      if ((n.type === 'OR' || n.type === 'AND') && n.left.type === 'NOT' && n.right.type === 'NOT') {
+        const newOp = n.type === 'OR' ? 'AND' : 'OR';
+        return { node: { type: 'NOT', child: { type: newOp, left: n.left.child, right: n.right.child } }, law: "Reverse De Morgan's Theorem" };
+      }
+      throw new Error("De Morgan's Law requires a negated product/sum like '(X · Y)'' or '(X + Y)''.");
+
+    case 'absorption':
+      if (n.type === 'OR') {
+        if (n.right.type === 'AND' && (astCommutativeEquals(n.left, n.right.left) || astCommutativeEquals(n.left, n.right.right)))
+          return { node: n.left, law: "Absorptive Law: X + (X · Y) = X" };
+        if (n.left.type === 'AND' && (astCommutativeEquals(n.right, n.left.left) || astCommutativeEquals(n.right, n.left.right)))
+          return { node: n.right, law: "Absorptive Law: (X · Y) + X = X" };
+      }
+      if (n.type === 'AND') {
+        if (n.right.type === 'OR' && (astCommutativeEquals(n.left, n.right.left) || astCommutativeEquals(n.left, n.right.right)))
+          return { node: n.left, law: "Absorptive Law: X · (X + Y) = X" };
+        if (n.left.type === 'OR' && (astCommutativeEquals(n.right, n.left.left) || astCommutativeEquals(n.right, n.left.right)))
+          return { node: n.right, law: "Absorptive Law: (X + Y) · X = X" };
+      }
+      throw new Error("Absorptive Law requires 'X + (X · Y)' or 'X · (X + Y)'.");
+
+    case 'absorption_comp':
+      if (n.type === 'OR') {
+        if (n.right.type === 'AND') {
+          if (isComplementPair(n.left, n.right.left)) return { node: { type: 'OR', left: n.left, right: n.right.right }, law: "Absorption w/ Complement: X + X'·Y = X + Y" };
+          if (isComplementPair(n.left, n.right.right)) return { node: { type: 'OR', left: n.left, right: n.right.left }, law: "Absorption w/ Complement: X + Y·X' = X + Y" };
+        }
+        if (n.left.type === 'AND') {
+          if (isComplementPair(n.right, n.left.left)) return { node: { type: 'OR', left: n.left.right, right: n.right }, law: "Absorption w/ Complement: X'·Y + X = Y + X" };
+          if (isComplementPair(n.right, n.left.right)) return { node: { type: 'OR', left: n.left.left, right: n.right }, law: "Absorption w/ Complement: Y·X' + X = Y + X" };
+        }
+      }
+      if (n.type === 'AND') {
+        if (n.right.type === 'OR') {
+          if (isComplementPair(n.left, n.right.left)) return { node: { type: 'AND', left: n.left, right: n.right.right }, law: "Absorption w/ Complement: X · (X' + Y) = X · Y" };
+          if (isComplementPair(n.left, n.right.right)) return { node: { type: 'AND', left: n.left, right: n.right.left }, law: "Absorption w/ Complement: X · (Y + X') = X · Y" };
+        }
+        if (n.left.type === 'OR') {
+          if (isComplementPair(n.right, n.left.left)) return { node: { type: 'AND', left: n.left.right, right: n.right }, law: "Absorption w/ Complement: (X' + Y) · X = Y · X" };
+          if (isComplementPair(n.right, n.left.right)) return { node: { type: 'AND', left: n.left.left, right: n.right }, law: "Absorption w/ Complement: (Y + X') · X = Y · X" };
+        }
+      }
+      throw new Error("Absorption with Complement requires 'X + (X' · Y)' or 'X · (X' + Y)'.");
+
+    case 'distribute':
+      if (n.type === 'AND' && n.right.type === 'OR')
+        return { node: { type: 'OR', left: { type: 'AND', left: cloneAST(n.left), right: n.right.left }, right: { type: 'AND', left: cloneAST(n.left), right: n.right.right } }, law: "Distributive Law: X·(Y+Z) = X·Y + X·Z" };
+      if (n.type === 'AND' && n.left.type === 'OR')
+        return { node: { type: 'OR', left: { type: 'AND', left: n.left.left, right: cloneAST(n.right) }, right: { type: 'AND', left: n.left.right, right: cloneAST(n.right) } }, law: "Distributive Law: (X+Y)·Z = X·Z + Y·Z" };
+      if (n.type === 'OR' && n.right.type === 'AND')
+        return { node: { type: 'AND', left: { type: 'OR', left: cloneAST(n.left), right: n.right.left }, right: { type: 'OR', left: cloneAST(n.left), right: n.right.right } }, law: "Distributive Law: X+(Y·Z) = (X+Y)·(X+Z)" };
+      if (n.type === 'OR' && n.left.type === 'AND')
+        return { node: { type: 'AND', left: { type: 'OR', left: n.left.left, right: cloneAST(n.right) }, right: { type: 'OR', left: n.left.right, right: cloneAST(n.right) } }, law: "Distributive Law: (Y·Z)+X = (Y+X)·(Z+X)" };
+      throw new Error("Distributive Expand requires 'X · (Y + Z)' or 'X + (Y · Z)'.");
+
+    case 'factor':
+      if (n.type === 'OR' && n.left.type === 'AND' && n.right.type === 'AND') {
+        if (astCommutativeEquals(n.left.left, n.right.left)) return { node: { type: 'AND', left: n.left.left, right: { type: 'OR', left: n.left.right, right: n.right.right } }, law: "Distributive (Factor): X·Y + X·Z = X·(Y+Z)" };
+        if (astCommutativeEquals(n.left.right, n.right.right)) return { node: { type: 'AND', left: n.left.right, right: { type: 'OR', left: n.left.left, right: n.right.left } }, law: "Distributive (Factor): Y·X + Z·X = X·(Y+Z)" };
+        if (astCommutativeEquals(n.left.left, n.right.right)) return { node: { type: 'AND', left: n.left.left, right: { type: 'OR', left: n.left.right, right: n.right.left } }, law: "Distributive (Factor): X·Y + Z·X = X·(Y+Z)" };
+        if (astCommutativeEquals(n.left.right, n.right.left)) return { node: { type: 'AND', left: n.left.right, right: { type: 'OR', left: n.left.left, right: n.right.right } }, law: "Distributive (Factor): Y·X + X·Z = X·(Y+Z)" };
+      }
+      if (n.type === 'AND' && n.left.type === 'OR' && n.right.type === 'OR') {
+        if (astCommutativeEquals(n.left.left, n.right.left)) return { node: { type: 'OR', left: n.left.left, right: { type: 'AND', left: n.left.right, right: n.right.right } }, law: "Distributive (Factor POS): (X+Y)·(X+Z) = X + (Y·Z)" };
+        if (astCommutativeEquals(n.left.right, n.right.right)) return { node: { type: 'OR', left: n.left.right, right: { type: 'AND', left: n.left.left, right: n.right.left } }, law: "Distributive (Factor POS)" };
+        if (astCommutativeEquals(n.left.left, n.right.right)) return { node: { type: 'OR', left: n.left.left, right: { type: 'AND', left: n.left.right, right: n.right.left } }, law: "Distributive (Factor POS)" };
+        if (astCommutativeEquals(n.left.right, n.right.left)) return { node: { type: 'OR', left: n.left.right, right: { type: 'AND', left: n.left.left, right: n.right.right } }, law: "Distributive (Factor POS)" };
+      }
+      throw new Error("Factoring requires a common term across both sides, e.g., '(X·Y) + (X·Z)' or '(X+Y)·(X+Z)'.");
+
+    case 'commute':
+      if (n.type === 'OR' || n.type === 'AND')
+        return { node: { type: n.type, left: n.right, right: n.left }, law: "Commutative Law: Swap operands" };
+      throw new Error("Commutative Law requires an AND or OR expression.");
+
+    case 'associate_left':
+      if ((n.type === 'OR' || n.type === 'AND') && n.right.type === n.type)
+        return { node: { type: n.type, left: { type: n.type, left: n.left, right: n.right.left }, right: n.right.right }, law: "Associative Law (Shift ⬅)" };
+      throw new Error("Associative Shift Left requires 'X op (Y op Z)' with the same operator.");
+
+    case 'associate_right':
+      if ((n.type === 'OR' || n.type === 'AND') && n.left.type === n.type)
+        return { node: { type: n.type, left: n.left.left, right: { type: n.type, left: n.left.right, right: n.right } }, law: "Associative Law (Shift ➡)" };
+      throw new Error("Associative Shift Right requires '(X op Y) op Z' with the same operator.");
+  }
+}
+
+// ============================================================================
+// 4. Q.E.D. GOAL CHECKER & ANTI-LOOP SMART HINT ENGINE
+// ============================================================================
+function isGoalReached() {
+  const task = LAB_TASKS[currentTaskKey];
+  if (task && task.mode === 'exact') {
+    return astCommutativeEquals(currentAST, targetAST);
+  }
+  if (astCommutativeEquals(currentAST, targetAST)) return true;
+
+  // Check if current expression is semantically equivalent AND has Complexity <= Target Complexity
+  if (areSemanticallyEqual(currentAST, targetAST)) {
+    const currC = computeComplexity(currentAST);
+    const targC = computeComplexity(targetAST);
+    if (currC.literals <= targC.literals && currC.gates <= targC.gates) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function wouldRepeatHistory(nodeId, tactic) {
+  const targetNode = findNodeById(currentAST, nodeId);
+  const res = applyLawToNode(targetNode, tactic);
+  const nextAST = replaceSubtree(currentAST, nodeId, res.node);
+  const nextStr = astToString(nextAST);
+  return visitedNormalized.has(nextStr);
+}
+
+function findNextHint(root) {
+  if (isGoalReached()) return null;
+
+  const reducingTactics = [
+    { id: 'complement', msg: "Apply 'Complement' (X+X'=1 or X·X'=0)." },
+    { id: 'annulment', msg: "Apply 'Domination (Null)' (X+1=1 or X·0=0)." },
+    { id: 'identity', msg: "Apply 'Identity' (X+0=X or X·1=X)." },
+    { id: 'idempotent', msg: "Apply 'Idempotent' (X+X=X or X·X=X)." },
+    { id: 'double_neg', msg: "Apply 'Double Negation' ((X')'=X)." },
+    { id: 'absorption', msg: "Apply 'Absorption' (X + X·Y = X or X·(X+Y) = X)." },
+    { id: 'absorption_comp', msg: "Apply 'Absorp. w/ Comp.' (X + X'·Y = X + Y)." },
+    { id: 'demorgan', msg: "Apply 'De Morgan's Law' to break the negation bar." },
+    { id: 'factor', msg: "Apply 'Distributive (Factor)' to pull out the common term." }
+  ];
+
+  function allNodes(node, list = []) {
+    if (!node) return list;
+    list.push(node);
+    if (node.type === 'NOT') allNodes(node.child, list);
+    if (node.type === 'AND' || node.type === 'OR') {
+      allNodes(node.left, list);
+      allNodes(node.right, list);
+    }
+    return list;
+  }
+
+  const nodes = allNodes(root);
+
+  // 1. Direct simplifying laws that DO NOT repeat history
+  for (const t of reducingTactics) {
+    for (const n of nodes) {
+      if (t.id === 'demorgan' && n.type !== 'NOT') continue;
+      try {
+        applyLawToNode(n, t.id);
+        if (!wouldRepeatHistory(n.id, t.id)) {
+          return { nodeId: n.id, tactic: t.id, text: `Hint: Target "${astToString(n)}" and click [${t.id.toUpperCase()}] — ${t.msg}` };
+        }
+      } catch (e) {}
+    }
+  }
+
+  // 2. Lookahead 1 step: Does an Associative or Commutative move unlock a reducing tactic on the very next turn?
+  const structuralMoves = ['associate_right', 'associate_left', 'commute', 'distribute'];
+  for (const move of structuralMoves) {
+    for (const n of nodes) {
+      try {
+        const res = applyLawToNode(n, move);
+        if (wouldRepeatHistory(n.id, move)) continue;
+        const nextAST = replaceSubtree(currentAST, n.id, res.node);
+        assignIds(nextAST, "root");
+        const nextNodes = allNodes(nextAST);
+        for (const red of reducingTactics) {
+          for (const nn of nextNodes) {
+            if (red.id === 'demorgan' && nn.type !== 'NOT') continue;
+            try {
+              const redRes = applyLawToNode(nn, red.id);
+              const afterRedAST = replaceSubtree(nextAST, nn.id, redRes.node);
+              if (computeComplexity(afterRedAST).literals < computeComplexity(currentAST).literals) {
+                return {
+                  nodeId: n.id,
+                  tactic: move,
+                  text: `Hint: Target "${astToString(n)}" and click [${move.toUpperCase()}] to group terms for ${red.id}!`
+                };
+              }
+            } catch (e) {}
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
+  return null;
+}
+
+function giveSmartHint() {
+  clearSuggestedTactic();
+  if (isGoalReached()) {
+    setStatus("🎉 Kraj dokaza je već postignut! Izraz je u minimalnom obliku — ne trebaš ići dalje.", "success");
+    return;
+  }
+  const hint = findNextHint(currentAST);
+  if (!hint) {
+    setStatus("Sustav ne pronalazi daljnje skraćivanje — ili je izraz već minimalan, ili klikni '📋 Solution Steps' za uputu.", "info");
+    return;
+  }
+  selectedNodeId = hint.nodeId;
+  suggestedTactic = hint.tactic;
+  const btn = document.getElementById(`btn-${hint.tactic}`);
+  if (btn) btn.classList.add('suggested');
+  setStatus(hint.text, "hint");
+  updateUI();
+}
+
+function showTaskWalkthrough() {
+  const task = LAB_TASKS[currentTaskKey];
+  if (task && task.walkthrough) {
+    alert(`Step-by-Step Solution Plan for ${currentTaskKey.toUpperCase()}:\n\n${task.walkthrough}`);
+  } else {
+    alert(`Minimal Target for this expression is: ${astToString(targetAST)}`);
+  }
+}
+
+function clearSuggestedTactic() {
+  suggestedTactic = null;
+  document.querySelectorAll('.tactic-btn').forEach(b => b.classList.remove('suggested'));
+}
+
+function replaceSubtree(root, targetId, replacement) {
+  if (root.id === targetId) return replacement;
+  const copy = cloneAST(root);
+  function walk(node) {
+    if (!node) return;
+    if (node.type === 'NOT') {
+      if (node.child.id === targetId) node.child = replacement;
+      else walk(node.child);
+    } else if (node.type === 'AND' || node.type === 'OR') {
+      if (node.left.id === targetId) node.left = replacement;
+      else walk(node.left);
+      if (node.right.id === targetId) node.right = replacement;
+      else walk(node.right);
+    }
+  }
+  walk(copy);
+  return copy;
+}
+
+function findNodeById(node, id) {
+  if (!node) return null;
+  if (node.id === id) return node;
+  if (node.type === 'NOT') return findNodeById(node.child, id);
+  if (node.type === 'AND' || node.type === 'OR') return findNodeById(node.left, id) || findNodeById(node.right, id);
+  return null;
+}
+
+function evalAST(node, env) {
+  if (node.type === 'CONST') return node.val;
+  if (node.type === 'VAR') return env[node.name] ?? 0;
+  if (node.type === 'NOT') return evalAST(node.child, env) ? 0 : 1;
+  if (node.type === 'AND') return (evalAST(node.left, env) && evalAST(node.right, env)) ? 1 : 0;
+  if (node.type === 'OR') return (evalAST(node.left, env) || evalAST(node.right, env)) ? 1 : 0;
+  return 0;
+}
+
+function getVariables(node, set = new Set()) {
+  if (!node) return [];
+  if (node.type === 'VAR') set.add(node.name);
+  if (node.type === 'NOT') getVariables(node.child, set);
+  if (node.type === 'AND' || node.type === 'OR') {
+    getVariables(node.left, set);
+    getVariables(node.right, set);
+  }
+  return Array.from(set).sort();
+}
+
+// ============================================================================
+// 5. UI RENDERING & 3 TRUTH TABLES
+// ============================================================================
+function renderInteractiveAST(node, parentType = null) {
+  const isSelected = node.id === selectedNodeId;
+  const cls = `ast-node ${isSelected ? (suggestedTactic ? 'hint-highlight' : 'selected') : ''}`;
+
+  if (node.type === 'VAR' || node.type === 'CONST') {
+    const label = node.type === 'VAR' ? node.name : node.val;
+    return `<span class="${cls}" onclick="selectNode(event, '${node.id}')">${label}</span>`;
+  }
+  if (node.type === 'NOT') {
+    const inner = renderInteractiveAST(node.child, null);
+    const wrap = (node.child.type === 'VAR' || node.child.type === 'CONST') ? `${inner}'` : `(${inner})'`;
+    return `<span class="${cls}" onclick="selectNode(event, '${node.id}')">${wrap}</span>`;
+  }
+  const op = node.type === 'AND' ? ' · ' : ' + ';
+  const leftHtml = renderInteractiveAST(node.left, node.type);
+  const rightHtml = renderInteractiveAST(node.right, node.type);
+  const needParens = parentType && ((parentType === 'AND' && node.type === 'OR') || (parentType === 'OR' && node.type === 'OR') || (parentType === 'AND' && node.type === 'AND'));
+  const content = needParens ? `(${leftHtml}${op}${rightHtml})` : `${leftHtml}${op}${rightHtml}`;
+  return `<span class="${cls}" onclick="selectNode(event, '${node.id}')">${content}</span>`;
+}
+
+function selectNode(event, id) {
+  event.stopPropagation();
+  clearSuggestedTactic();
+  selectedNodeId = id;
+  const target = findNodeById(currentAST, id);
+  setStatus(`Selected sub-expression: ${astToString(target)}`, "info");
+  updateUI();
+}
+
+function selectRoot() {
+  clearSuggestedTactic();
+  selectedNodeId = "root";
+  updateUI();
+}
+
+function applyTactic(tacticName) {
+  clearSuggestedTactic();
+  if (isGoalReached()) {
+    setStatus("🎉 Zadatak je već riješen do kraja (Q.E.D.)! Ne moraš raditi daljnje korake.", "success");
+    return;
+  }
+  try {
+    const targetNode = findNodeById(currentAST, selectedNodeId);
+    if (!targetNode) throw new Error("Please click a sub-expression first.");
+    const result = applyLawToNode(targetNode, tacticName);
+    const nextAST = replaceSubtree(currentAST, selectedNodeId, result.node);
+    assignIds(nextAST, "root");
+    const nextStr = astToString(nextAST);
+
+    // Check if this step loops back to an earlier state
+    const previousIdx = proofSteps.findIndex(s => s.expr === nextStr);
+    const isLoop = previousIdx !== -1;
+
+    currentAST = nextAST;
+    selectedNodeId = "root";
+    visitedNormalized.add(nextStr);
+    proofSteps.push({ expr: nextStr, law: result.law, loop: isLoop });
+
+    if (isGoalReached()) {
+      setStatus(`🎉 Q.E.D.! Primijenjeno: ${result.law}. Dosegnut je konačni minimalni oblik!`, "success");
+    } else if (isLoop) {
+      setStatus(`⚠️ Pozor (Petlja): Ovaj izraz (${nextStr}) si već imao u koraku #${previousIdx}! Klikni '↩ Undo' ili '💡 Get Smart Hint'.`, "hint");
+    } else {
+      setStatus(`✓ Applied: ${result.law}`, "success");
+    }
+    updateUI();
+  } catch (err) {
+    setStatus(`✗ ${err.message}`, "error");
+  }
+}
+
+function verifyManualStep() {
+  const input = document.getElementById('manual-step-input').value.trim();
+  if (!input) return;
+  clearSuggestedTactic();
+  try {
+    const candidateAST = parseBoolean(input);
+    const vars = Array.from(new Set([...getVariables(initialAST), ...getVariables(candidateAST)])).sort();
+    const numRows = 1 << vars.length;
+    for (let i = 0; i < numRows; i++) {
+      const env = {};
+      vars.forEach((v, idx) => { env[v] = (i >> (vars.length - 1 - idx)) & 1; });
+      if (evalAST(initialAST, env) !== evalAST(candidateAST, env)) {
+        const combo = vars.map(v => `${v}=${env[v]}`).join(', ');
+        throw new Error(`Semantic verification failed! Truth tables differ at input (${combo}).`);
+      }
+    }
+    currentAST = candidateAST;
+    assignIds(currentAST, "root");
+    selectedNodeId = "root";
+    const nextStr = astToString(currentAST);
+    visitedNormalized.add(nextStr);
+    proofSteps.push({ expr: nextStr, law: "Verified Manual Step", loop: false });
+    document.getElementById('manual-step-input').value = "";
+    setStatus("✓ Manual step verified! Middle Truth Table updated.", "success");
+    updateUI();
+  } catch (err) {
+    setStatus(`✗ ${err.message}`, "error");
+  }
+}
+
+function renderSingleTruthTable(tableId, ast, refAST, vars) {
+  const numRows = 1 << vars.length;
+  let html = `<thead><tr>${vars.map(v => `<th>${v}</th>`).join('')}<th>Out</th></tr></thead><tbody>`;
+  for (let i = 0; i < numRows; i++) {
+    const env = {};
+    vars.forEach((v, idx) => { env[v] = (i >> (vars.length - 1 - idx)) & 1; });
+    const val = evalAST(ast, env);
+    const refVal = evalAST(refAST, env);
+    const cls = (val !== refVal) ? 'out-diff' : (val === 1 ? 'out-1' : 'out-0');
+    html += `<tr>${vars.map(v => `<td>${env[v]}</td>`).join('')}<td class="${cls}">${val}</td></tr>`;
+  }
+  html += `</tbody>`;
+  document.getElementById(tableId).innerHTML = html;
+}
+
+function updateUI() {
+  const reached = isGoalReached();
+
+  // 1. Render Interactive AST & QED Banner
+  const astBox = document.getElementById('ast-container');
+  astBox.innerHTML = renderInteractiveAST(currentAST);
+  astBox.className = `goal-box ${reached ? 'qed-box' : ''}`;
+  document.getElementById('qed-banner').className = `qed-banner ${reached ? 'visible' : ''}`;
+
+  // 2. Render Proof History
+  const histEl = document.getElementById('proof-history');
+  histEl.innerHTML = proofSteps.map((s, idx) => `
+    <div class="proof-step ${s.loop ? 'loop-warn' : ''}">
+      <span><strong>${idx}.</strong> ${s.expr} ${s.loop ? '⚠️(Loop)' : ''}</span>
+      <span class="law-tag">${s.law}</span>
+    </div>
+  `).join('');
+
+  // 3. Hardware Metrics
+  const initCost = computeComplexity(initialAST);
+  const currCost = computeComplexity(currentAST);
+  const targCost = computeComplexity(targetAST);
+  document.getElementById('gate-count-init').textContent = initCost.gates;
+  document.getElementById('gate-count-curr').textContent = currCost.gates;
+  document.getElementById('gate-count-target').textContent = targCost.gates;
+  document.getElementById('depth-curr').textContent = currCost.depth;
+
+  // 4. Variables & Canonical Forms
+  const rawVars = Array.from(new Set([...getVariables(initialAST), ...getVariables(currentAST), ...getVariables(targetAST)])).sort();
+  const vars = rawVars.length > 0 ? rawVars : ['A', 'B'];
+  const numRows = 1 << vars.length;
+  const minterms = [];
+  const maxterms = [];
+  for (let i = 0; i < numRows; i++) {
+    const env = {};
+    vars.forEach((v, idx) => { env[v] = (i >> (vars.length - 1 - idx)) & 1; });
+    if (evalAST(initialAST, env) === 1) minterms.push(i);
+    else maxterms.push(i);
+  }
+  document.getElementById('canonical-output').innerHTML = `
+    <div><strong>Canonical SOP:</strong> f = Σm(${minterms.join(', ')})</div>
+    <div style="margin-top:4px;"><strong>Canonical POS:</strong> f = ΠM(${maxterms.join(', ')})</div>
+    <div style="margin-top:6px; color:#86efac;"><strong>Minimal Target:</strong> ${astToString(targetAST)}</div>
+  `;
+
+  // 5. Render the 3 Separate Truth Tables
+  document.getElementById('lbl-expr-init').textContent = `f_init = ${astToString(initialAST)}`;
+  document.getElementById('lbl-expr-curr').textContent = `f_step = ${astToString(currentAST)}`;
+  document.getElementById('lbl-expr-final').textContent = `f_min  = ${astToString(targetAST)}`;
+
+  renderSingleTruthTable('tt-init', initialAST, initialAST, vars);
+  renderSingleTruthTable('tt-curr', currentAST, initialAST, vars);
+  renderSingleTruthTable('tt-final', targetAST, initialAST, vars);
+
+  const eqOk = areSemanticallyEqual(initialAST, currentAST);
+  const statusEl = document.getElementById('tt-curr-status');
+  statusEl.textContent = eqOk ? "✓ 100% Equivalent" : "✗ Not Equivalent";
+  statusEl.style.color = eqOk ? "var(--success)" : "var(--danger)";
+
+  // 6. Header QED Badge
+  const badge = document.getElementById('qed-badge');
+  if (reached) {
+    badge.textContent = "🎉 Q.E.D. — MINIMAL GOAL REACHED!";
+    badge.className = "badge done";
+  } else {
+    badge.textContent = `TARGET GOAL: ${astToString(targetAST)} (${targCost.gates} gates)`;
+    badge.className = "badge";
+  }
+}
+
+function setStatus(msg, type = "info") {
+  const el = document.getElementById('status-bar');
+  el.textContent = msg;
+  el.className = `status-msg ${type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'hint' ? 'hint' : ''}`;
+}
+
+function undoStep() {
+  if (proofSteps.length <= 1) return;
+  clearSuggestedTactic();
+  proofSteps.pop();
+  currentAST = parseBoolean(proofSteps[proofSteps.length - 1].expr);
+  selectedNodeId = "root";
+  setStatus("Undid last step.", "info");
+  updateUI();
+}
+
+function resetTask() { loadSelectedTask(); }
+
+function loadSelectedTask() {
+  clearSuggestedTactic();
+  currentTaskKey = document.getElementById('task-select').value;
+  const task = LAB_TASKS[currentTaskKey];
+  initialAST = parseBoolean(task.expr);
+  currentAST = cloneAST(initialAST);
+  targetAST = parseBoolean(task.target);
+  selectedNodeId = "root";
+  const initStr = astToString(currentAST);
+  visitedNormalized = new Set([initStr]);
+  proofSteps = [{ expr: initStr, law: "Initial Premise", loop: false }];
+  setStatus(task.desc, "info");
+  updateUI();
+}
+
+function loadCustomExpr() {
+  const raw = document.getElementById('custom-expr').value.trim();
+  if (!raw) return;
+  clearSuggestedTactic();
+  try {
+    currentTaskKey = "custom";
+    initialAST = parseBoolean(raw);
+    currentAST = cloneAST(initialAST);
+    targetAST = synthesizeMinimalTarget(initialAST);
+    selectedNodeId = "root";
+    const initStr = astToString(currentAST);
+    visitedNormalized = new Set([initStr]);
+    proofSteps = [{ expr: initStr, law: "Custom Premise", loop: false }];
+    setStatus(`Loaded custom expression. Auto-detected minimal target: ${astToString(targetAST)}`, "success");
+    updateUI();
+  } catch (err) {
+    setStatus(`Syntax Error: ${err.message}`, "error");
+  }
+}
+
+function toggleHelp(show) {
+  document.getElementById('help-modal').style.display = show ? 'flex' : 'none';
+}
+
+window.onload = loadSelectedTask;
+</script>
+</body>
+</html>
